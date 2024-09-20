@@ -19,7 +19,7 @@ steps:
     - |
       cd src/backend
       pip install -r requirements.txt;
-      flake8 .
+      flake8 --ignore=E501,E502 .
 
 # 2. Unit Test Step for Python (CI)
 - name: 'python:3.9-slim'

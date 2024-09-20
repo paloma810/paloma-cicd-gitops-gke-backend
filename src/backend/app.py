@@ -74,6 +74,7 @@ file_handler.setFormatter(json_formatter)
 logger.addHandler(console_handler)
 logger.addHandler(file_handler)
 
+
 @app.route('/test', methods=['POST'])
 def test():
     data = request.get_json()
@@ -81,6 +82,7 @@ def test():
         return jsonify({"message": "OK"})
     else:
         return jsonify({"message": "認証エラー"}), 401
+
 
 @app.route('/api/authenticate', methods=['POST'])
 def authenticate():
@@ -127,6 +129,7 @@ def authenticate():
     finally:
         if conn:
             db_pool.putconn(conn)
+
 
 if __name__ == '__main__':
     PORT = int(os.getenv('PORT', 3000))

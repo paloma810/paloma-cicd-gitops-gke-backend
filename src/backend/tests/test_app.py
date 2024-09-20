@@ -1,9 +1,12 @@
 import os
 import pytest
-import json
+import bcrypt
+import jwt
+#import json
 from unittest.mock import patch, MagicMock
-from flask import Flask
+#from flask import Flask
 from app import app  # Flaskアプリケーションが app.py にあると仮定
+
 
 # フィクスチャでテストクライアントを提供
 @pytest.fixture
@@ -11,6 +14,7 @@ def client():
     app.config['TESTING'] = True
     with app.test_client() as client:
         yield client
+
 
 # フィクスチャで環境変数を設定
 @pytest.fixture(autouse=True)
@@ -23,12 +27,14 @@ def set_env_vars(monkeypatch):
     monkeypatch.setenv('JWT_SECRET_KEY', 'test-secret-key')
     monkeypatch.setenv('PORT', '3001')  # テスト用ポート
 
+
 # テスト用ユーザーデータ
 test_user = {
     'user_id': 1,
     'username': 'testuser',
     'password': bcrypt.hashpw('testpassword'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 }
+
 
 # `/test` エンドポイントのテスト - 正しい認証
 def test_test_endpoint_success(client):
@@ -37,12 +43,14 @@ def test_test_endpoint_success(client):
     data = response.get_json()
     assert data['message'] == 'OK'
 
+
 # `/test` エンドポイントのテスト - 認証エラー
 def test_test_endpoint_failure(client):
     response = client.post('/test', json={'id': 'wrong', 'pass': 'wrong'})
     assert response.status_code == 401
     data = response.get_json()
     assert data['message'] == '認証エラー'
+
 
 # `/api/authenticate` エンドポイントのテスト - 成功
 @patch('app.db_pool')
@@ -73,6 +81,7 @@ def test_authenticate_success(mock_db_pool, client):
     mock_cursor.execute.assert_called_once_with('SELECT * FROM users WHERE username = %s', ('testuser',))
     mock_db_pool.putconn.assert_called_once_with(mock_conn)
 
+
 # `/api/authenticate` エンドポイントのテスト - ユーザーが存在しない
 @patch('app.db_pool')
 def test_authenticate_user_not_found(mock_db_pool, client):
@@ -93,6 +102,7 @@ def test_authenticate_user_not_found(mock_db_pool, client):
     mock_db_pool.getconn.assert_called_once()
     mock_cursor.execute.assert_called_once_with('SELECT * FROM users WHERE username = %s', ('nonexistent',))
     mock_db_pool.putconn.assert_called_once_with(mock_conn)
+
 
 # `/api/authenticate` エンドポイントのテスト - パスワードが間違っている
 @patch('app.db_pool')
@@ -120,6 +130,7 @@ def test_authenticate_wrong_password(mock_db_pool, client):
     mock_cursor.execute.assert_called_once_with('SELECT * FROM users WHERE username = %s', ('testuser',))
     mock_db_pool.putconn.assert_called_once_with(mock_conn)
 
+
 # `/api/authenticate` エンドポイントのテスト - データベースエラー
 @patch('app.db_pool')
 def test_authenticate_db_error(mock_db_pool, client):
@@ -135,6 +146,7 @@ def test_authenticate_db_error(mock_db_pool, client):
     assert data['message'] == 'Internal Server Error'
 
     mock_db_pool.getconn.assert_called_once()
+
 
 # JWTトークンの有効性テスト
 @patch('app.db_pool')
