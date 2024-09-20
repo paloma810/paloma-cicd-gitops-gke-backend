@@ -1,0 +1,41 @@
+# ベースイメージとして公式のPythonイメージを使用
+FROM python:3.10-slim
+
+# 環境変数の設定（Pythonのバッファリングを無効化）
+ENV PYTHONUNBUFFERED=1
+
+# 作業ディレクトリを設定
+WORKDIR /app
+
+# 必要なシステムパッケージをインストール
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends vim && \
+    rm -rf /var/lib/apt/lists/*
+
+# Pythonの依存関係を先にコピーしてキャッシュを活用
+COPY ./src/backend/requirements.txt /app/
+
+# Pythonの依存関係をインストール
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# アプリケーションコードをコピー
+COPY ./src/backend/ /app/
+
+# 必要なポートを公開（Flaskのデフォルトは5000ですが、環境に応じて変更）
+EXPOSE 3000
+
+# 環境変数を設定（必要に応じて追加）
+ENV FLASK_APP=app.py
+ENV FLASK_RUN_HOST=0.0.0.0
+ENV PORT=3000
+
+# エントリーポイントの設定
+# 開発環境の場合はFlaskの開発サーバーを使用
+# 本番環境の場合はGunicornなどのWSGIサーバーを使用することを推奨
+
+# 開発環境用（デバッグモード有効）
+# CMD ["flask", "run"]
+
+# 本番環境用（Gunicornを使用）
+CMD ["gunicorn", "--bind", "0.0.0.0:3000", "app:app"]

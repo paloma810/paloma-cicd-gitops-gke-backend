@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sample-app-back-configmap
+data:
+  POSTGRES_DB: "sample_app_db"
+  POSTGRES_PORT: "5432"
+  POSTGRES_SERVER: "postgres"

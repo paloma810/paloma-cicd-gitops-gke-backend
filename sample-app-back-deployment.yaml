@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f ../../sample-app-gcptest/docker-compose.yml
+    kompose.version: 1.31.2 (HEAD)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: sample-app-back
+  name: sample-app-back
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: sample-app-back
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f ../../sample-app-gcptest/docker-compose.yml
+        kompose.version: 1.31.2 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.network/sample-app-gcptest-sample-app-network: "true"
+        io.kompose.service: sample-app-back
+    spec:
+      containers:
+        - image: asia-northeast1-docker.pkg.dev/paloma-cicd/paloma-cicd-repo-gke/sample-app-back:SHORT_SHA
+          name: sample-app-back
+          ports:
+            - containerPort: 3000
+              hostIP: 127.0.0.1
+              hostPort: 3000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: sample-app-back-configmap
+          env:
+          - name:  POSTGRES_USER
+            valueFrom:
+              secretKeyRef:
+                name: sample-db-credentials
+                key: kh-paloma-m01-01-secret-sample-db-user
+          - name:  POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: sample-db-credentials
+                key: kh-paloma-m01-01-secret-sample-db-password                
+          resources:
+            requests:
+              cpu: 50m
+              memory: 100Mi
+          tty: true
+          workingDir: /app
+      restartPolicy: Always
+      nodeSelector:
+        cloud.google.com/gke-nodepool: kh-paloma-m01-01-gke-nodes02
+status: {}

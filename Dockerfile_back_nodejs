@@ -1,0 +1,11 @@
+FROM node:16
+
+WORKDIR /app
+
+COPY ./src/backend/ /app/
+
+RUN apt-get update
+RUN apt-get install -y vim
+RUN npm install
+
+ENTRYPOINT [ "node", "index.js" ]

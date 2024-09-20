@@ -1,0 +1,56 @@
+substitutions:
+  _GAR_REPOSITORY_REGION: "asia-northeast1"
+  _GAR_PROJECT_ID: "paloma-cicd"
+  _GAR_REPOSITORY_NAME: "paloma-cicd-repo-gke"
+  _GAR_IMAGE_NAME_FRONT: "sample-app-front"
+  _GAR_IMAGE_NAME_BACK: "sample-app-back"
+  _GAR_IMAGE_NAME_DB: "sample-app-db"
+  _GKE_CLUSTER_ZONE: "asia-northeast1-a"
+  _GKE_CLUSTER_NAME: "kh-paloma-m01-01-gke-cluster01"
+  _GKE_PROJECT_ID: "kh-paloma-m01-01"
+
+steps:
+# 1. Lint Step for Python (CI)
+- name: 'python:3.9-slim'
+  id: python lint
+  entrypoint: 'bash'
+  args:
+    - '-c'
+    - |
+      pip install -r requirements.txt;
+      flake8 .
+
+# 2. Unit Test Step for Python (CI)
+- name: 'python:3.9-slim'
+  id: python unit test
+  entrypoint: 'bash'
+  args:
+    - '-c'
+    - |
+      pip install -r requirements.txt;
+      pytest
+
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-f', 'Dockerfile_back', '-t', '${_GAR_REPOSITORY_REGION}-docker.pkg.dev/${_GAR_PROJECT_ID}/${_GAR_REPOSITORY_NAME}/${_GAR_IMAGE_NAME_BACK}:${SHORT_SHA}', '.']
+  id: docker build back
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['push', '${_GAR_REPOSITORY_REGION}-docker.pkg.dev/${_GAR_PROJECT_ID}/${_GAR_REPOSITORY_NAME}/${_GAR_IMAGE_NAME_BACK}:${SHORT_SHA}']
+  id: docker push back
+- name: 'gcr.io/cloud-builders/gcloud'
+  args: ['container', 'clusters', 'get-credentials', '${_GKE_CLUSTER_NAME}', '--zone','${_GKE_CLUSTER_ZONE}','--project', '${_GKE_PROJECT_ID}']
+  id: gcloud container clusters get-credentials
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: Generate manifest
+  entrypoint: /bin/bash
+  args:
+  - '-c'
+  - |
+     sed -i -e "s/SHORT_SHA/${SHORT_SHA}/g" ./sample-app-back-deployment.yaml;
+- name: 'gcr.io/cloud-builders/kubectl'
+  args: ['apply', '-f', './']
+  env:
+  - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_CLUSTER_ZONE}'
+  - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER_NAME}'
+  - 'CLOUDSDK_CORE_PROJECT=${_GKE_PROJECT_ID}'
+  id: kubectl apply

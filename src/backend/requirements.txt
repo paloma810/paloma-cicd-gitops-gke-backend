@@ -1,0 +1,13 @@
+flask
+flask-Cors
+bcrypt
+PyJWT
+psycopg2-binary
+google-cloud-trace
+google-cloud-profiler
+python-json-logger
+gunicorn
+flake8
+pytest
+pytest-flask
+pytest-mock
