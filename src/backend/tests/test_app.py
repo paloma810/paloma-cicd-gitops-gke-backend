@@ -2,9 +2,9 @@ import os
 import pytest
 import bcrypt
 import jwt
-#import json
+# import json
 from unittest.mock import patch, MagicMock
-#from flask import Flask
+# from flask import Flask
 from app import app  # Flaskアプリケーションが app.py にあると仮定
 
 

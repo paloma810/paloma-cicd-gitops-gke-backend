@@ -6,7 +6,6 @@ from flask_cors import CORS
 import bcrypt
 import jwt
 import psycopg2
-from psycopg2 import pool
 from google.cloud import trace as cloud_trace
 from google.cloud import profiler
 from pythonjsonlogger import jsonlogger
@@ -62,7 +61,7 @@ console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.INFO)
 
 # ファイルハンドラー
-file_handler = RotatingFileHandler('/app/log/backend.log', maxBytes=10*1024*1024, backupCount=5)
+file_handler = RotatingFileHandler('/app/log/backend.log', maxBytes = 10 * 1024 * 1024, backupCount = 5)
 file_handler.setLevel(logging.INFO)
 
 # JSONフォーマッターの設定
