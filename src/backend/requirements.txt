@@ -4,7 +4,7 @@ bcrypt
 PyJWT
 psycopg2-binary
 google-cloud-trace
-google-cloud-profiler
+#google-cloud-profiler
 python-json-logger
 gunicorn
 flake8
