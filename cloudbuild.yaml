@@ -54,3 +54,4 @@ steps:
   - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER_NAME}'
   - 'CLOUDSDK_CORE_PROJECT=${_GKE_PROJECT_ID}'
   id: kubectl apply
+
