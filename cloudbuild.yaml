@@ -17,6 +17,7 @@ steps:
   args:
     - '-c'
     - |
+      cd src/backend
       pip install -r requirements.txt;
       flake8 .
 
@@ -27,6 +28,7 @@ steps:
   args:
     - '-c'
     - |
+      cd src/backend
       pip install -r requirements.txt;
       pytest
 
