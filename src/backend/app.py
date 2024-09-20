@@ -61,7 +61,7 @@ console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.INFO)
 
 # ファイルハンドラー
-file_handler = RotatingFileHandler('/app/log/backend.log', maxBytes = 10 * 1024 * 1024, backupCount = 5)
+file_handler = RotatingFileHandler('/app/log/backend.log', maxBytes=10 * 1024 * 1024, backupCount=5)
 file_handler.setLevel(logging.INFO)
 
 # JSONフォーマッターの設定
