@@ -30,7 +30,6 @@ steps:
       pip install -r requirements.txt;
       pytest
 
-steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-f', 'Dockerfile_back', '-t', '${_GAR_REPOSITORY_REGION}-docker.pkg.dev/${_GAR_PROJECT_ID}/${_GAR_REPOSITORY_NAME}/${_GAR_IMAGE_NAME_BACK}:${SHORT_SHA}', '.']
   id: docker build back
