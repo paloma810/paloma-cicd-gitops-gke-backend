@@ -7,7 +7,7 @@ import bcrypt
 import jwt
 import psycopg2
 from google.cloud import trace as cloud_trace
-from google.cloud import profiler
+# from google.cloud import profiler
 from pythonjsonlogger import jsonlogger
 
 # Google Cloud Traceの初期化
