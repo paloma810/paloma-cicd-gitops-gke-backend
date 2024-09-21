@@ -1,11 +1,13 @@
 import os
+import sys
 import pytest
 import bcrypt
 import jwt
 # import json
 from unittest.mock import patch, MagicMock
-# from flask import Flask
-from app import app  # Flaskアプリケーションが app.py にあると仮定
+# 親ディレクトリをパスに追加して app.py をインポート可能にする
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from app import app  # app.py が親ディレクトリにある場合
 
 
 # フィクスチャでテストクライアントを提供
