@@ -14,6 +14,7 @@ from pythonjsonlogger import jsonlogger
 cloud_trace.Client(project='kh-paloma-m01-01').start()
 
 # Google Cloud Profilerの初期化
+"""
 try:
     profiler.start(
         service='sample-app-back',
@@ -22,6 +23,7 @@ try:
     )
 except (OSError, ValueError) as exc:
     logging.error(exc)
+"""
 
 app = Flask(__name__)
 CORS(app)
