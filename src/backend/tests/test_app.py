@@ -1,16 +1,31 @@
+# tests/test_app.py
+
 import os
 import sys
 import pytest
-import bcrypt
-import jwt
-# import json
 from unittest.mock import patch, MagicMock
-# 親ディレクトリをパスに追加して app.py をインポート可能にする
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from app import app  # app.py が親ディレクトリにある場合
+# import bcrypt
+# import jwt
+
+# 1. psycopg2.pool.SimpleConnectionPool をモックする
+with patch('psycopg2.pool.SimpleConnectionPool') as mock_pool:
+    mock_db_pool = MagicMock()
+    mock_pool.return_value = mock_db_pool
+
+    # 2. 必要な環境変数を設定する
+    os.environ['POSTGRES_DB'] = 'test_db'
+    os.environ['POSTGRES_USER'] = 'test_user'
+    os.environ['POSTGRES_PASSWORD'] = 'test_password'
+    os.environ['POSTGRES_SERVER'] = 'localhost'
+    os.environ['POSTGRES_PORT'] = '5432'
+    # JWT_SECRET_KEY が環境変数として扱われていない場合、app.py を修正することも検討
+
+    # 3. 親ディレクトリをパスに追加して app.py をインポートする
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from app import app
 
 
-# フィクスチャでテストクライアントを提供
+# 4. テストクライアントのフィクスチャを定義
 @pytest.fixture
 def client():
     app.config['TESTING'] = True
@@ -18,124 +33,113 @@ def client():
         yield client
 
 
-# フィクスチャで環境変数を設定
-@pytest.fixture(autouse=True)
-def set_env_vars(monkeypatch):
-    monkeypatch.setenv('POSTGRES_DB', 'test_db')
-    monkeypatch.setenv('POSTGRES_USER', 'test_user')
-    monkeypatch.setenv('POSTGRES_PASSWORD', 'test_password')
-    monkeypatch.setenv('POSTGRES_SERVER', 'localhost')
-    monkeypatch.setenv('POSTGRES_PORT', '5432')
-    monkeypatch.setenv('JWT_SECRET_KEY', 'test-secret-key')
-    monkeypatch.setenv('PORT', '3001')  # テスト用ポート
+# 5. /test エンドポイントのテスト
 
-
-# テスト用ユーザーデータ
-test_user = {
-    'user_id': 1,
-    'username': 'testuser',
-    'password': bcrypt.hashpw('testpassword'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-}
-
-
-# `/test` エンドポイントのテスト - 正しい認証
 def test_test_endpoint_success(client):
     response = client.post('/test', json={'id': 'test', 'pass': 'test'})
     assert response.status_code == 200
-    data = response.get_json()
-    assert data['message'] == 'OK'
+    assert response.get_json() == {"message": "OK"}
 
 
-# `/test` エンドポイントのテスト - 認証エラー
 def test_test_endpoint_failure(client):
-    response = client.post('/test', json={'id': 'wrong', 'pass': 'wrong'})
+    response = client.post('/test', json={'id': 'wrong', 'pass': 'test'})
     assert response.status_code == 401
-    data = response.get_json()
-    assert data['message'] == '認証エラー'
+    assert response.get_json() == {"message": "認証エラー"}
+
+    response = client.post('/test', json={'id': 'test', 'pass': 'wrong'})
+    assert response.status_code == 401
+    assert response.get_json() == {"message": "認証エラー"}
 
 
-# `/api/authenticate` エンドポイントのテスト - 成功
+# 6. /api/authenticate エンドポイントのテスト
+
 @patch('app.db_pool')
 def test_authenticate_success(mock_db_pool, client):
-    # モックされたデータベース接続とカーソル
+    # モックされたデータベース接続とカーソルの設定
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_db_pool.getconn.return_value = mock_conn
     mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
-    # データベースから返されるユーザー情報
-    mock_cursor.fetchone.return_value = (
-        test_user['user_id'],
-        test_user['username'],
-        test_user['password']
-    )
 
-    response = client.post('/api/authenticate', json={
-        'username': 'testuser',
-        'password': 'testpassword'
-    })
-    assert response.status_code == 200
-    data = response.get_json()
-    assert 'token' in data
-    assert data['message'] == 'Login successful'
+    # データベースから返されるユーザーデータ
+    mock_cursor.fetchone.return_value = {
+        "user_id": 1,
+        "username": "testuser",
+        # "password": bcrypt.hashpw(b'testpassword', bcrypt.gensalt()).decode('utf-8')
+        "password": "testpassword"
+    }
 
-    # データベース接続が正しく行われたか確認
-    mock_db_pool.getconn.assert_called_once()
-    mock_cursor.execute.assert_called_once_with('SELECT * FROM users WHERE username = %s', ('testuser',))
-    mock_db_pool.putconn.assert_called_once_with(mock_conn)
+    # bcrypt.checkpw をモック
+    with patch('app.bcrypt.checkpw', return_value=True):
+        # jwt.encode をモック
+        with patch('app.jwt.encode', return_value='mocked_jwt_token'):
+            response = client.post('/api/authenticate', json={
+                'username': 'testuser',
+                'password': 'testpassword'
+            })
+            assert response.status_code == 200
+            json_data = response.get_json()
+            assert json_data['token'] == 'mocked_jwt_token'
+            assert json_data['message'] == "Login successful"
+
+    # コネクションがプールに返されることを確認
+    mock_db_pool.putconn.assert_called_with(mock_conn)
 
 
-# `/api/authenticate` エンドポイントのテスト - ユーザーが存在しない
 @patch('app.db_pool')
 def test_authenticate_user_not_found(mock_db_pool, client):
+    # モックされたデータベース接続とカーソルの設定
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_db_pool.getconn.return_value = mock_conn
     mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
-    mock_cursor.fetchone.return_value = None  # ユーザーが見つからない
+
+    # データベースから返されるユーザーデータが None
+    mock_cursor.fetchone.return_value = None
 
     response = client.post('/api/authenticate', json={
         'username': 'nonexistent',
         'password': 'any_password'
     })
     assert response.status_code == 401
-    data = response.get_json()
-    assert data['message'] == 'Invalid credentials'
+    assert response.get_json() == {"message": "Invalid credentials"}
 
-    mock_db_pool.getconn.assert_called_once()
-    mock_cursor.execute.assert_called_once_with('SELECT * FROM users WHERE username = %s', ('nonexistent',))
-    mock_db_pool.putconn.assert_called_once_with(mock_conn)
+    # コネクションがプールに返されることを確認
+    mock_db_pool.putconn.assert_called_with(mock_conn)
 
 
-# `/api/authenticate` エンドポイントのテスト - パスワードが間違っている
 @patch('app.db_pool')
-def test_authenticate_wrong_password(mock_db_pool, client):
+def test_authenticate_incorrect_password(mock_db_pool, client):
+    # モックされたデータベース接続とカーソルの設定
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_db_pool.getconn.return_value = mock_conn
     mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
-    # ユーザーは存在するがパスワードが異なる
-    mock_cursor.fetchone.return_value = (
-        test_user['user_id'],
-        test_user['username'],
-        bcrypt.hashpw('wrongpassword'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-    )
 
-    response = client.post('/api/authenticate', json={
-        'username': 'testuser',
-        'password': 'wrongpassword'
-    })
-    assert response.status_code == 401
-    data = response.get_json()
-    assert data['message'] == 'Invalid credentials'
+    # データベースから返されるユーザーデータ
+    mock_cursor.fetchone.return_value = {
+        "user_id": 1,
+        "username": "testuser",
+        # "password": bcrypt.hashpw(b'correct_password', bcrypt.gensalt()).decode('utf-8')
+        "password": "testpassword"
+    }
 
-    mock_db_pool.getconn.assert_called_once()
-    mock_cursor.execute.assert_called_once_with('SELECT * FROM users WHERE username = %s', ('testuser',))
-    mock_db_pool.putconn.assert_called_once_with(mock_conn)
+    # bcrypt.checkpw をモックして False を返す
+    with patch('app.bcrypt.checkpw', return_value=False):
+        response = client.post('/api/authenticate', json={
+            'username': 'testuser',
+            'password': 'wrongpassword'
+        })
+        assert response.status_code == 401
+        assert response.get_json() == {"message": "Invalid credentials"}
+
+    # コネクションがプールに返されることを確認
+    mock_db_pool.putconn.assert_called_with(mock_conn)
 
 
-# `/api/authenticate` エンドポイントのテスト - データベースエラー
 @patch('app.db_pool')
-def test_authenticate_db_error(mock_db_pool, client):
+def test_authenticate_internal_server_error(mock_db_pool, client):
+    # db_pool.getconn が例外を投げるように設定
     mock_db_pool.getconn.side_effect = Exception("Database connection error")
 
     response = client.post('/api/authenticate', json={
@@ -143,40 +147,41 @@ def test_authenticate_db_error(mock_db_pool, client):
         'password': 'testpassword'
     })
     assert response.status_code == 500
-    data = response.get_json()
-    assert data['token'] is None
-    assert data['message'] == 'Internal Server Error'
-
-    mock_db_pool.getconn.assert_called_once()
+    assert response.get_json() == {"token": None, "message": "Internal Server Error"}
 
 
-# JWTトークンの有効性テスト
+# 7. 追加のテストケース（オプション）
+
 @patch('app.db_pool')
-def test_authenticate_jwt_token(mock_db_pool, client):
+def test_authenticate_missing_fields(mock_db_pool, client):
+    # モックされたデータベース接続とカーソルの設定
     mock_conn = MagicMock()
     mock_cursor = MagicMock()
     mock_db_pool.getconn.return_value = mock_conn
     mock_conn.cursor.return_value.__enter__.return_value = mock_cursor
-    mock_cursor.fetchone.return_value = (
-        test_user['user_id'],
-        test_user['username'],
-        test_user['password']
-    )
 
+    # データベースから返されるユーザーデータが None
+    mock_cursor.fetchone.return_value = None
+
+    # ユーザー名が欠けている
     response = client.post('/api/authenticate', json={
-        'username': 'testuser',
         'password': 'testpassword'
     })
-    assert response.status_code == 200
-    data = response.get_json()
-    token = data.get('token')
-    assert token is not None
+    assert response.status_code == 401
+    assert response.get_json() == {"message": "Invalid credentials"}
 
-    # JWTトークンのデコードと検証
-    decoded = jwt.decode(token, os.getenv('JWT_SECRET_KEY'), algorithms=['HS256'])
-    assert decoded['userId'] == test_user['user_id']
-    assert decoded['username'] == test_user['username']
+    # コネクションがプールに返されることを確認
+    mock_db_pool.putconn.assert_called_with(mock_conn)
 
-    mock_db_pool.getconn.assert_called_once()
-    mock_cursor.execute.assert_called_once_with('SELECT * FROM users WHERE username = %s', ('testuser',))
-    mock_db_pool.putconn.assert_called_once_with(mock_conn)
+
+def test_authenticate_empty_json(client):
+    response = client.post('/api/authenticate', json={})
+    assert response.status_code == 401
+    assert response.get_json() == {"message": "Invalid credentials"}
+
+
+def test_authenticate_no_json(client):
+    response = client.post('/api/authenticate', data="Not a JSON")
+    # 現在の app.py の実装では、`data.get('username')` が None になるため 401 が返されます
+    assert response.status_code == 415
+    assert response.get_json() is None

@@ -6,12 +6,12 @@ from flask_cors import CORS
 import bcrypt
 import jwt
 import psycopg2
-from google.cloud import trace as cloud_trace
+# from google.cloud import trace as cloud_trace
 # from google.cloud import profiler
 from pythonjsonlogger import jsonlogger
 
 # Google Cloud Traceの初期化
-cloud_trace.Client(project='kh-paloma-m01-01').start()
+# cloud_trace.Client(project='kh-paloma-m01-01').start()
 
 # Google Cloud Profilerの初期化
 """
@@ -63,7 +63,7 @@ console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.INFO)
 
 # ファイルハンドラー
-file_handler = RotatingFileHandler('/app/log/backend.log', maxBytes=10 * 1024 * 1024, backupCount=5)
+file_handler = RotatingFileHandler('./log/backend.log', maxBytes=10 * 1024 * 1024, backupCount=5)
 file_handler.setLevel(logging.INFO)
 
 # JSONフォーマッターの設定
@@ -88,11 +88,16 @@ def test():
 @app.route('/api/authenticate', methods=['POST'])
 def authenticate():
     data = request.get_json()
+    # JSONが空または不正な場合、400エラーを返す
+    if data is None or data == {}:
+        return jsonify({"message": "Invalid credentials"}), 401
+
     username = data.get('username')
     password = data.get('password')
 
     logger.info('start authenticate')
 
+    conn = None  # conn を初期化
     try:
         conn = db_pool.getconn()
         if conn:
