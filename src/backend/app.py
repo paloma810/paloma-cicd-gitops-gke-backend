@@ -33,23 +33,17 @@ DB_NAME = os.getenv('POSTGRES_DB')
 DB_USER = os.getenv('POSTGRES_USER')
 DB_PASSWORD = os.getenv('POSTGRES_PASSWORD')
 DB_HOST = os.getenv('POSTGRES_SERVER')
-DB_PORT = os.getenv('POSTGRES_PORT', 5432)  # デフォルトのPostgreSQLポート
-
+DB_PORT = os.getenv('POSTGRES_PORT', 5432)
+# psycopg2の接続用URLを構築する
+DB_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 # JWTの秘密鍵
 JWT_SECRET_KEY = 'your-secret-key'  # 実際の環境では安全に管理してください
+db_conn = None
 
 # PostgreSQLの接続プールを設定
 try:
-    db_pool = psycopg2.pool.SimpleConnectionPool(
-        1,
-        20,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        host=DB_HOST,
-        port=DB_PORT,
-        database=DB_NAME
-    )
-    if db_pool:
+    db_conn = psycopg2.connect(DB_URL)
+    if db_conn:
         print("PostgreSQL connection pool created successfully")
 except (Exception, psycopg2.DatabaseError) as error:
     print(f"Error while connecting to PostgreSQL: {error}")
@@ -97,11 +91,9 @@ def authenticate():
 
     logger.info('start authenticate')
 
-    conn = None  # conn を初期化
     try:
-        conn = db_pool.getconn()
-        if conn:
-            with conn.cursor() as cursor:
+        if db_conn:
+            with db_conn.cursor() as cursor:
                 cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
                 user = cursor.fetchone()
 
@@ -132,9 +124,6 @@ def authenticate():
     except Exception as error:
         logger.error(f"Error during authentication: {error}")
         return jsonify({"token": None, "message": "Internal Server Error"}), 500
-    finally:
-        if conn:
-            db_pool.putconn(conn)
 
 
 if __name__ == '__main__':
