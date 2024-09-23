@@ -131,7 +131,7 @@ def authenticate():
     except Exception as error:
         error_message = f"Error during authentication: [{error.__class__.__name__}] {error}"
         logger.error(error_message)
-        return jsonify({"token": None, "message": error_message,}), 500
+        return jsonify({"token": None, "message": error_message}), 500
 
 
 if __name__ == '__main__':
