@@ -1,7 +1,7 @@
 import os
 import logging
 from logging.handlers import RotatingFileHandler
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
 import bcrypt
 import jwt
@@ -76,20 +76,20 @@ except (Exception, psycopg2.DatabaseError) as error:
 def test():
     data = request.get_json()
     if data.get('id') == 'test' and data.get('pass') == 'test':
-        return jsonify({"message": "OK"})
+        return make_response(jsonify({"message": "OK"}), 200)
     else:
-        return jsonify({"message": "Invalid credentials"}), 401
+        return make_response(jsonify({"message": "Invalid credentials"}), 401)
 
 
 @app.route('/api/authenticate', methods=['POST'])
 def authenticate():
     if db_conn is None:
-        return jsonify({"token": None, "message": "db_conn is None"}), 500
+        return make_response(jsonify({"token": None, "message": "db_conn is None"}), 500)
 
     data = request.get_json()
     # JSONが空または不正な場合、400エラーを返す
     if data is None or data == {}:
-        return jsonify({"message": "Invalid credentials"}), 401
+        return make_response(jsonify({"message": "Invalid credentials"}), 401)
 
     username = data.get('username')
     password = data.get('password')
@@ -106,12 +106,12 @@ def authenticate():
 
             if not user:
                 logger.info('the user does not exist in DB.')
-                return jsonify({"message": "Invalid credentials"}), 401
+                return make_response(jsonify({"message": "Invalid credentials"}), 401)
 
             stored_password = user["password"]
             if not bcrypt.checkpw(password.encode('utf-8'), stored_password.encode('utf-8')):
                 logger.info('password is incorrect.')
-                return jsonify({"message": "Invalid credentials"}), 401
+                return make_response(jsonify({"message": "Invalid credentials"}), 401)
 
             # JWTペイロードの作成
             jwt_payload = {
@@ -123,15 +123,15 @@ def authenticate():
             token = jwt.encode(jwt_payload, JWT_SECRET_KEY, algorithm='HS256')
 
             logger.info('login succeed. return jwt token')
-            return jsonify({
+            return make_response(jsonify({
                 "token": token,
                 "message": "Login successful"
-            })
+            }), 200)
 
     except Exception as error:
         error_message = f"Error during authentication: [{error.__class__.__name__}] {error}"
         logger.error(error_message)
-        return jsonify({"token": None, "message": error_message}), 500
+        return make_response(jsonify({"token": None, "message": error_message}), 500)
 
 
 if __name__ == '__main__':
