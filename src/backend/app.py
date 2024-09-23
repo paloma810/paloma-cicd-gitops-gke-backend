@@ -40,14 +40,6 @@ DB_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 JWT_SECRET_KEY = 'your-secret-key'  # 実際の環境では安全に管理してください
 db_conn = None
 
-# PostgreSQLの接続プールを設定
-try:
-    db_conn = psycopg2.connect(DB_URL)
-    if db_conn:
-        print("PostgreSQL connection pool created successfully")
-except (Exception, psycopg2.DatabaseError) as error:
-    print(f"Error while connecting to PostgreSQL: {error}")
-
 # ロガーの設定
 logger = logging.getLogger("backend_logger")
 logger.setLevel(logging.INFO)
@@ -69,6 +61,15 @@ file_handler.setFormatter(json_formatter)
 logger.addHandler(console_handler)
 logger.addHandler(file_handler)
 
+# PostgreSQLの接続プールを設定
+try:
+    db_conn = psycopg2.connect(DB_URL)
+    logger.info(f'db_conn: {db_conn}')
+    if db_conn:
+        print("PostgreSQL connection pool created successfully")
+except (Exception, psycopg2.DatabaseError) as error:
+    print(f"Error while connecting to PostgreSQL: {error}")
+
 
 @app.route('/test', methods=['POST'])
 def test():
@@ -76,11 +77,14 @@ def test():
     if data.get('id') == 'test' and data.get('pass') == 'test':
         return jsonify({"message": "OK"})
     else:
-        return jsonify({"message": "認証エラー"}), 401
+        return jsonify({"message": "Invalid credentials"}), 401
 
 
 @app.route('/api/authenticate', methods=['POST'])
 def authenticate():
+    if db_conn is None:
+        return jsonify({"token": None, "message": "Internal Server Error"}), 500
+
     data = request.get_json()
     # JSONが空または不正な場合、400エラーを返す
     if data is None or data == {}:
@@ -95,7 +99,9 @@ def authenticate():
         if db_conn:
             with db_conn.cursor() as cursor:
                 cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
+                logger.info(f'cursor {cursor}')
                 user = cursor.fetchone()
+                logger.info(f'fetched user {user}')
 
             if not user:
                 logger.info('the user does not exist in DB.')
@@ -122,7 +128,7 @@ def authenticate():
             })
 
     except Exception as error:
-        logger.error(f"Error during authentication: {error}")
+        logger.error(f"Error during authentication: [{error.__class__.__name__}] {error}")
         return jsonify({"token": None, "message": "Internal Server Error"}), 500
 
 
