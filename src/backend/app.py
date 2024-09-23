@@ -84,7 +84,7 @@ def test():
 @app.route('/api/authenticate', methods=['POST'])
 def authenticate():
     if db_conn is None:
-        return jsonify({"token": None, "message": "Internal Server Error"}), 500
+        return jsonify({"token": None, "message": "db_conn is None"}), 500
 
     data = request.get_json()
     # JSONが空または不正な場合、400エラーを返す
@@ -129,8 +129,9 @@ def authenticate():
             })
 
     except Exception as error:
-        logger.error(f"Error during authentication: [{error.__class__.__name__}] {error}")
-        return jsonify({"token": None, "message": "Internal Server Error"}), 500
+        error_message = f"Error during authentication: [{error.__class__.__name__}] {error}"
+        logger.error(error_message)
+        return jsonify({"token": None, "message": error_message,}), 500
 
 
 if __name__ == '__main__':
