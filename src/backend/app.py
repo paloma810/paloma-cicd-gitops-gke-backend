@@ -136,4 +136,3 @@ if __name__ == '__main__':
     PORT = int(os.getenv('PORT', 3000))
     logger.info(f"Server is running on port {PORT}")
     app.run(host='0.0.0.0', port=PORT)
-    

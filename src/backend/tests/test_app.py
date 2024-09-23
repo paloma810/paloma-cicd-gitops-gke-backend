@@ -115,4 +115,3 @@ def test_authenticate_exception(mock_db_conn, client):
     response = client.post('/api/authenticate', json={'username': 'testuser', 'password': 'testpass'})
     assert response.status_code == 500
     assert response.get_json() == {"token": None, "message": "Internal Server Error"}
-    
