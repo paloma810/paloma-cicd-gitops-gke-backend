@@ -6,6 +6,7 @@ from flask_cors import CORS
 import bcrypt
 import jwt
 import psycopg2
+from psycopg2.extras import RealDictCursor
 # from google.cloud import trace as cloud_trace
 # from google.cloud import profiler
 from pythonjsonlogger import jsonlogger
@@ -97,7 +98,7 @@ def authenticate():
 
     try:
         if db_conn:
-            with db_conn.cursor() as cursor:
+            with db_conn.cursor(cursor_factory=RealDictCursor) as cursor:
                 cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
                 logger.info(f'cursor {cursor}')
                 user = cursor.fetchone()
