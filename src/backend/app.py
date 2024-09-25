@@ -6,6 +6,7 @@ from flask_cors import CORS
 import bcrypt
 import jwt
 import psycopg2
+from datetime import datetime, timedelta
 from psycopg2.extras import RealDictCursor
 # from google.cloud import trace as cloud_trace
 # from google.cloud import profiler
@@ -117,6 +118,7 @@ def authenticate():
             jwt_payload = {
                 "userId": user["user_id"],
                 "username": user["username"],
+                'exp': datetime.datetime.utcnow() + datetime.timedelta(minutes=10),  # 有効期限を10分に設定
             }
 
             # JWTの生成
