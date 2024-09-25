@@ -6,7 +6,7 @@ from flask_cors import CORS
 import bcrypt
 import jwt
 import psycopg2
-from datetime import datetime, timedelta
+from datetime import datetime
 from psycopg2.extras import RealDictCursor
 # from google.cloud import trace as cloud_trace
 # from google.cloud import profiler
