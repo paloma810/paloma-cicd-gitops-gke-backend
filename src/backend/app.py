@@ -10,6 +10,7 @@ import datetime
 from psycopg2.extras import RealDictCursor
 from pythonjsonlogger import jsonlogger
 
+
 class Database:
     def __init__(self):
         self.DB_NAME = os.getenv('POSTGRES_DB')
@@ -26,6 +27,7 @@ class Database:
         except (Exception, psycopg2.DatabaseError) as error:
             print(f"Error while connecting to PostgreSQL: {error}")
             return None
+
 
 class LoggerService:
     def __init__(self):
@@ -49,6 +51,7 @@ class LoggerService:
 
     def error(self, message):
         self.logger.error(message)
+
 
 class AuthService:
     JWT_SECRET_KEY = 'your-secret-key'
@@ -90,12 +93,14 @@ class AuthService:
         finally:
             connection.close()
 
+
 app = Flask(__name__)
 CORS(app)
 
 db = Database()
 logger_service = LoggerService()
 auth_service = AuthService(db, logger_service)
+
 
 @app.route('/test', methods=['POST'])
 def test():
@@ -104,6 +109,7 @@ def test():
         return make_response(jsonify({"message": "OK"}), 200)
     else:
         return make_response(jsonify({"message": "Invalid credentials"}), 401)
+
 
 @app.route('/api/authenticate', methods=['POST'])
 def authenticate():
@@ -125,6 +131,7 @@ def authenticate():
             "token": None,
             "message": message
         }), 401)
+
 
 if __name__ == '__main__':
     PORT = int(os.getenv('PORT', 3000))
