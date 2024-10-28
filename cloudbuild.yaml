@@ -49,13 +49,13 @@ steps:
   - |
      sed -i -e "s/SHORT_SHA/${SHORT_SHA}/g" ./sample-app-back-deployment.yaml;
 # external-secretsリポジトリを追加
-- name: 'gcr.io/cloud-builders/helm'
+- name: 'alpine/helm:3.8.0'
   args: ['repo', 'add', 'external-secrets', 'https://charts.external-secrets.io']
 # レポジトリを更新
-- name: 'gcr.io/cloud-builders/helm'
+- name: 'alpine/helm:3.8.0'
   args: ['repo', 'update']
 # external-secretsをインストール
-- name: 'gcr.io/cloud-builders/helm'
+- name: 'alpine/helm:3.8.0'
   args: [
     'install', 'external-secrets', 
     'external-secrets/external-secrets', 
