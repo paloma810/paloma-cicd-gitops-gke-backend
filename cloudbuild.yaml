@@ -41,13 +41,6 @@ steps:
 - name: 'gcr.io/cloud-builders/gcloud'
   args: ['container', 'clusters', 'get-credentials', '${_GKE_CLUSTER_NAME}', '--zone','${_GKE_CLUSTER_ZONE}','--project', '${_GKE_PROJECT_ID}']
   id: gcloud container clusters get-credentials
-- name: 'gcr.io/cloud-builders/gcloud'
-  id: Generate manifest
-  entrypoint: /bin/bash
-  args:
-  - '-c'
-  - |
-     sed -i -e "s/SHORT_SHA/${SHORT_SHA}/g" ./sample-app-back-deployment.yaml;
 # external-secretsリポジトリを追加
 - name: 'alpine/helm:3.8.0'
   args: ['repo', 'add', 'external-secrets', 'https://charts.external-secrets.io']
@@ -62,6 +55,13 @@ steps:
     '-n', 'external-secrets', 
     '--create-namespace'
   ]
+- name: 'gcr.io/cloud-builders/gcloud'
+  id: Generate manifest
+  entrypoint: /bin/bash
+  args:
+  - '-c'
+  - |
+     sed -i -e "s/SHORT_SHA/${SHORT_SHA}/g" ./sample-app-back-deployment.yaml;
 - name: 'gcr.io/cloud-builders/kubectl'
   entrypoint: 'sh'
   args:
