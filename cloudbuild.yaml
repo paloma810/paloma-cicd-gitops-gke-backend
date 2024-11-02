@@ -58,7 +58,7 @@ steps:
 # external-secretsをインストール
 - name: 'gcr.io/$PROJECT_ID/helm'
   args: [
-    'install', 'external-secrets', 
+    'upgrade', '--install', 'external-secrets', 
     'external-secrets/external-secrets', 
     '-n', 'external-secrets', 
     '--create-namespace'
