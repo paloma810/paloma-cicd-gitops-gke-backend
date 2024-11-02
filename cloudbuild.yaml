@@ -44,9 +44,17 @@ steps:
 # external-secretsリポジトリを追加
 - name: 'alpine/helm:3.8.0'
   args: ['repo', 'add', 'external-secrets', 'https://charts.external-secrets.io']
+  env:
+  - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_CLUSTER_ZONE}'
+  - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER_NAME}'
+  - 'CLOUDSDK_CORE_PROJECT=${_GKE_PROJECT_ID}'
 # レポジトリを更新
 - name: 'alpine/helm:3.8.0'
   args: ['repo', 'update']
+  env:
+  - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_CLUSTER_ZONE}'
+  - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER_NAME}'
+  - 'CLOUDSDK_CORE_PROJECT=${_GKE_PROJECT_ID}'
 # external-secretsをインストール
 - name: 'alpine/helm:3.8.0'
   args: [
@@ -55,6 +63,10 @@ steps:
     '-n', 'external-secrets', 
     '--create-namespace'
   ]
+  env:
+  - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_CLUSTER_ZONE}'
+  - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER_NAME}'
+  - 'CLOUDSDK_CORE_PROJECT=${_GKE_PROJECT_ID}'
 - name: 'gcr.io/cloud-builders/gcloud'
   id: Generate manifest
   entrypoint: /bin/bash
