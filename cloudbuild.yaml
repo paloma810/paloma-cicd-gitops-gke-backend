@@ -42,21 +42,21 @@ steps:
   args: ['container', 'clusters', 'get-credentials', '${_GKE_CLUSTER_NAME}', '--zone','${_GKE_CLUSTER_ZONE}','--project', '${_GKE_PROJECT_ID}']
   id: gcloud container clusters get-credentials
 # external-secretsリポジトリを追加
-- name: 'alpine/helm:3.8.0'
+- name: 'gcr.io/$PROJECT_ID/cloud-builders-helm'
   args: ['repo', 'add', 'external-secrets', 'https://charts.external-secrets.io']
   env:
   - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_CLUSTER_ZONE}'
   - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER_NAME}'
   - 'CLOUDSDK_CORE_PROJECT=${_GKE_PROJECT_ID}'
 # レポジトリを更新
-- name: 'alpine/helm:3.8.0'
+- name: 'gcr.io/$PROJECT_ID/cloud-builders-helm'
   args: ['repo', 'update']
   env:
   - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_CLUSTER_ZONE}'
   - 'CLOUDSDK_CONTAINER_CLUSTER=${_GKE_CLUSTER_NAME}'
   - 'CLOUDSDK_CORE_PROJECT=${_GKE_PROJECT_ID}'
 # external-secretsをインストール
-- name: 'alpine/helm:3.8.0'
+- name: 'gcr.io/$PROJECT_ID/cloud-builders-helm'
   args: [
     'install', 'external-secrets', 
     'external-secrets/external-secrets', 
