@@ -62,7 +62,6 @@ steps:
     'external-secrets/external-secrets', 
     '-n', 'external-secrets', 
     '--create-namespace',
-    '--set', 'installCRDs=true'
   ]
   env:
   - 'CLOUDSDK_COMPUTE_ZONE=${_GKE_CLUSTER_ZONE}'
