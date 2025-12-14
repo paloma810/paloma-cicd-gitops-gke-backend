@@ -103,6 +103,7 @@ db = Database()
 logger_service = LoggerService()
 auth_service = AuthService(db, logger_service)
 
+
 # ヘルパー: Cookieからユーザー情報を復元
 def get_user_from_token(auth_service):
     token = request.cookies.get('jwt_token')
@@ -115,6 +116,8 @@ def get_user_from_token(auth_service):
     except Exception:
         return None
 
+
+# テスト用エンドポイント
 @app.route('/test', methods=['POST'])
 def test():
     data = request.get_json()
@@ -122,6 +125,7 @@ def test():
         return make_response(jsonify({"message": "OK"}), 200)
     else:
         return make_response(jsonify({"message": "Invalid credentials"}), 401)
+
 
 # ログイン認証API
 @app.route('/api/authenticate', methods=['POST'])
@@ -154,6 +158,7 @@ def authenticate():
             "message": message
         }), 401)
 
+
 # セッション確認API (リロード時にVueからコールされる)
 @app.route('/api/me', methods=['GET'])
 def get_current_user():
@@ -163,6 +168,7 @@ def get_current_user():
     else:
         return jsonify({"message": "Unauthorized"}), 401
 
+
 # ログアウトAPI (Cookie削除)
 @app.route('/api/logout', methods=['POST'])
 def logout():
@@ -170,6 +176,7 @@ def logout():
     # 有効期限を過去にして削除扱いにする
     resp.set_cookie('jwt_token', '', expires=0, httponly=True, secure=True, path='/')
     return resp
+
 
 if __name__ == '__main__':
     PORT = int(os.getenv('PORT', 3000))
