@@ -95,12 +95,25 @@ class AuthService:
 
 
 app = Flask(__name__)
-CORS(app)
+# supports_credentials=True にし、originsにフロントエンドのURLを指定。
+# ※ https://www.hato-inds.com だけでなく、利便性向上のためローカル開発環境のURLも含める。
+CORS(app, supports_credentials=True, origins=["https://www.hato-inds.com", "http://localhost:8080"])
 
 db = Database()
 logger_service = LoggerService()
 auth_service = AuthService(db, logger_service)
 
+# ヘルパー: Cookieからユーザー情報を復元
+def get_user_from_token(auth_service):
+    token = request.cookies.get('jwt_token')
+    if not token:
+        return None
+    try:
+        # decode時のオプションはAuthServiceの実装に合わせてください
+        payload = jwt.decode(token, auth_service.JWT_SECRET_KEY, algorithms=['HS256'])
+        return payload
+    except Exception:
+        return None
 
 @app.route('/test', methods=['POST'])
 def test():
@@ -110,7 +123,7 @@ def test():
     else:
         return make_response(jsonify({"message": "Invalid credentials"}), 401)
 
-
+# ログイン認証API
 @app.route('/api/authenticate', methods=['POST'])
 def authenticate():
     data = request.get_json()
@@ -119,19 +132,44 @@ def authenticate():
 
     username = data.get('username')
     password = data.get('password')
-
     token, message = auth_service.authenticate(username, password)
+
     if token:
-        return make_response(jsonify({
-            "token": token,
+        resp = make_response(jsonify({
             "message": message
         }), 200)
+        # Cookieにトークンをセット
+        resp.set_cookie(
+            key='jwt_token',
+            value=token,
+            max_age=600,       # 10分
+            httponly=True,     # JSからアクセス不可
+            secure=True,       # HTTPS必須
+            samesite='Lax',    # 同一サイト
+            path='/'           # 全ページで有効
+        )
+        return resp
     else:
         return make_response(jsonify({
-            "token": None,
             "message": message
         }), 401)
 
+# セッション確認API (リロード時にVueからコールされる)
+@app.route('/api/me', methods=['GET'])
+def get_current_user():
+    user = get_user_from_token(auth_service=auth_service)
+    if user:
+        return jsonify(user), 200
+    else:
+        return jsonify({"message": "Unauthorized"}), 401
+
+# ログアウトAPI (Cookie削除)
+@app.route('/api/logout', methods=['POST'])
+def logout():
+    resp = make_response(jsonify({"message": "Logged out"}), 200)
+    # 有効期限を過去にして削除扱いにする
+    resp.set_cookie('jwt_token', '', expires=0, httponly=True, secure=True, path='/')
+    return resp
 
 if __name__ == '__main__':
     PORT = int(os.getenv('PORT', 3000))
