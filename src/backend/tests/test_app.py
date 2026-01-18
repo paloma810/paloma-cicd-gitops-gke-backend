@@ -1,7 +1,7 @@
 import pytest
 import bcrypt
 import jwt
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, PropertyMock
 from app import app
 
 # JWTの秘密鍵とテストユーザーの設定
@@ -41,11 +41,20 @@ def test_authenticate_success(mock_get_connection, client):
 
     response = client.post('/api/authenticate', json={'username': 'testuser', 'password': 'testpass'})
     assert response.status_code == 200
-    assert 'token' in response.json
     assert response.json['message'] == 'Login successful'
 
-    # JWTの検証
-    token = response.json['token']
+    # JWTトークンがSet-Cookieヘッダーで返されていることを確認
+    set_cookie = response.headers.get('Set-Cookie')
+    assert set_cookie and 'jwt_token=' in set_cookie
+
+    # ヘッダーからトークン値を抽出して検証
+    token = None
+    for part in set_cookie.split(';'):
+        part = part.strip()
+        if part.startswith('jwt_token='):
+            token = part.split('=', 1)[1]
+            break
+    assert token is not None
     decoded_token = jwt.decode(token, JWT_SECRET_KEY, algorithms=['HS256'])
     assert decoded_token['username'] == 'testuser'
     assert decoded_token['userId'] == 1
@@ -80,4 +89,8 @@ def test_authenticate_invalid_password(mock_get_connection, client):
 @patch('app.Database.get_connection')
 def test_authenticate_db_error(mock_get_connection, client):
     """ データベースエラー時の認証テスト """
-    mock_get_connection.side_effect = Exception
+    mock_get_connection.return_value = None
+
+    response = client.post('/api/authenticate', json={'username': 'testuser', 'password': 'testpass'})
+    assert response.status_code == 401
+    assert response.json['message'] == 'Database connection failed'
