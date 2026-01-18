@@ -86,8 +86,7 @@ class AuthService:
             jwt_payload = {
                 "userId": user["user_id"],
                 "username": user["username"],
-                "exp": datetime.datetime.now(datetime.timezone.utc)
-                + datetime.timedelta(minutes=10),
+                "exp": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(minutes=10),
             }
 
             token = jwt.encode(

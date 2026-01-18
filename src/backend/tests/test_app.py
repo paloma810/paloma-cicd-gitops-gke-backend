@@ -1,7 +1,7 @@
 import pytest
 import bcrypt
 import jwt
-from unittest.mock import patch, MagicMock, PropertyMock
+from unittest.mock import patch, MagicMock
 from app import app
 
 # JWTの秘密鍵とテストユーザーの設定
