@@ -57,3 +57,4 @@ spec:
       nodeSelector:
         cloud.google.com/gke-nodepool: kh-paloma-m01-01-gke-nodes02
 status: {}
+
